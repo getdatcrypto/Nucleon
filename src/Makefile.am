@@ -183,6 +183,7 @@ BITCOIN_CORE_H = \
   utiltime.h \
   validation.h \
   validationinterface.h \
+  velocity.h \
   versionbits.h \
   wallet/coincontrol.h \
   wallet/crypter.h \
@@ -264,6 +265,7 @@ libneon_server_a_SOURCES = \
   ui_interface.cpp \
   validation.cpp \
   validationinterface.cpp \
+  velocity.cpp \
   versionbits.cpp \
   $(BITCOIN_CORE_H)
 

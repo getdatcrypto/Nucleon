@@ -4,168 +4,123 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "pow.h"
-
 #include "arith_uint256.h"
 #include "chain.h"
 #include "chainparams.h"
 #include "primitives/block.h"
 #include "uint256.h"
+#include "util.h"
 
 #include <math.h>
 
-unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const Consensus::Params& params) {
-    const CBlockIndex *BlockLastSolved = pindexLast;
-    const CBlockIndex *BlockReading = pindexLast;
-    uint64_t PastBlocksMass = 0;
-    int64_t PastRateActualSeconds = 0;
-    int64_t PastRateTargetSeconds = 0;
-    double PastRateAdjustmentRatio = double(1);
-    arith_uint256 PastDifficultyAverage;
-    arith_uint256 PastDifficultyAveragePrev;
-    double EventHorizonDeviation;
-    double EventHorizonDeviationFast;
-    double EventHorizonDeviationSlow;
-
-    uint64_t pastSecondsMin = params.nPowTargetTimespan * 0.025;
-    uint64_t pastSecondsMax = params.nPowTargetTimespan * 7;
-    uint64_t PastBlocksMin = pastSecondsMin / params.nPowTargetSpacing;
-    uint64_t PastBlocksMax = pastSecondsMax / params.nPowTargetSpacing;
-
-    if (BlockLastSolved == NULL || BlockLastSolved->nHeight == 0 || (uint64_t)BlockLastSolved->nHeight < PastBlocksMin) { return UintToArith256(params.powLimit).GetCompact(); }
-
-    for (unsigned int i = 1; BlockReading && BlockReading->nHeight > 0; i++) {
-        if (PastBlocksMax > 0 && i > PastBlocksMax) { break; }
-        PastBlocksMass++;
-
-        PastDifficultyAverage.SetCompact(BlockReading->nBits);
-        if (i > 1) {
-            // handle negative arith_uint256
-            if(PastDifficultyAverage >= PastDifficultyAveragePrev)
-                PastDifficultyAverage = ((PastDifficultyAverage - PastDifficultyAveragePrev) / i) + PastDifficultyAveragePrev;
-            else
-                PastDifficultyAverage = PastDifficultyAveragePrev - ((PastDifficultyAveragePrev - PastDifficultyAverage) / i);
+unsigned int Terminal_Velocity_RateX(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
+{
+    // Terminal-Velocity-RateX, v10-Beta-R7.2 (Pure PoW), written by Jonathan Dan Zaretsky - cryptocoderz@gmail.com
+    const arith_uint256 bnTerminalVelocity = UintToArith256(params.powLimit);
+    // Define values
+    double VLF1 = 0;
+    double VLF2 = 0;
+    double VLF3 = 0;
+    double VLF4 = 0;
+    double VLF5 = 0;
+    double VLFtmp = 0;
+    double VRFsm1 = 1;
+    double VRFdw1 = 0.75;
+    double VRFdw2 = 0.5;
+    double VRFup1 = 1.25;
+    double VRFup2 = 1.5;
+    double VRFup3 = 2;
+    double TerminalAverage = 0;
+    double TerminalFactor = 10000;
+    int64_t VLrate1 = 0;
+    int64_t VLrate2 = 0;
+    int64_t VLrate3 = 0;
+    int64_t VLrate4 = 0;
+    int64_t VLrate5 = 0;
+    int64_t VLRtemp = 0;
+    int64_t DSrateNRM = params.nPowTargetSpacing;
+    int64_t DSrateMAX = DSrateNRM + (1 * 60);
+    int64_t FRrateCLNG = DSrateNRM + (3 * 60);
+    int64_t FRrateDWN = DSrateNRM - (1 * 60);
+    int64_t FRrateFLR = DSrateNRM - (2 * 60);
+    int64_t difficultyfactor = 0;
+    int64_t AverageDivisor = 5;
+    int64_t scanheight = 6;
+    int64_t scanblocks = 1;
+    int64_t scantime_1 = 0;
+    int64_t scantime_2 = pindexLast->GetBlockTime();
+    // Check for blocks to index | Allowing for diff reset
+    if (pindexLast->nHeight < params.nPowVRXHeight+2)
+        return bnTerminalVelocity.GetCompact(); // reset diff
+    // Set prev blocks...
+    const CBlockIndex* pindexPrev = pindexLast;
+    // ...and deduce spacing
+    while(scanblocks < scanheight)
+    {
+        scantime_1 = scantime_2;
+        pindexPrev = pindexPrev->pprev;
+        scantime_2 = pindexPrev->GetBlockTime();
+        // Set standard values
+        if(scanblocks > 0){
+            if     (scanblocks < scanheight-4){ VLrate1 = (scantime_1 - scantime_2); VLRtemp = VLrate1; }
+            else if(scanblocks < scanheight-3){ VLrate2 = (scantime_1 - scantime_2); VLRtemp = VLrate2; }
+            else if(scanblocks < scanheight-2){ VLrate3 = (scantime_1 - scantime_2); VLRtemp = VLrate3; }
+            else if(scanblocks < scanheight-1){ VLrate4 = (scantime_1 - scantime_2); VLRtemp = VLrate4; }
+            else if(scanblocks < scanheight-0){ VLrate5 = (scantime_1 - scantime_2); VLRtemp = VLrate5; }
         }
-        PastDifficultyAveragePrev = PastDifficultyAverage;
-
-        PastRateActualSeconds = BlockLastSolved->GetBlockTime() - BlockReading->GetBlockTime();
-        PastRateTargetSeconds = params.nPowTargetSpacing * PastBlocksMass;
-        PastRateAdjustmentRatio = double(1);
-        if (PastRateActualSeconds < 0) { PastRateActualSeconds = 0; }
-        if (PastRateActualSeconds != 0 && PastRateTargetSeconds != 0) {
-            PastRateAdjustmentRatio = double(PastRateTargetSeconds) / double(PastRateActualSeconds);
-        }
-        EventHorizonDeviation = 1 + (0.7084 * pow((double(PastBlocksMass)/double(28.2)), -1.228));
-        EventHorizonDeviationFast = EventHorizonDeviation;
-        EventHorizonDeviationSlow = 1 / EventHorizonDeviation;
-
-        if (PastBlocksMass >= PastBlocksMin) {
-                if ((PastRateAdjustmentRatio <= EventHorizonDeviationSlow) || (PastRateAdjustmentRatio >= EventHorizonDeviationFast))
-                { assert(BlockReading); break; }
-        }
-        if (BlockReading->pprev == NULL) { assert(BlockReading); break; }
-        BlockReading = BlockReading->pprev;
-    }
-
-    arith_uint256 bnNew(PastDifficultyAverage);
-    if (PastRateActualSeconds != 0 && PastRateTargetSeconds != 0) {
-        bnNew *= PastRateActualSeconds;
-        bnNew /= PastRateTargetSeconds;
-    }
-
-    if (bnNew > UintToArith256(params.powLimit)) {
-        bnNew = UintToArith256(params.powLimit);
-    }
-
-    return bnNew.GetCompact();
-}
-
-unsigned int static DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params) {
-    /* current difficulty formula, neon - DarkGravity v3, written by Evan Duffield - evan@neon.org */
-    const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
-    int64_t nPastBlocks = 24;
-
-    // make sure we have at least (nPastBlocks + 1) blocks, otherwise just return powLimit
-    if (!pindexLast || pindexLast->nHeight < nPastBlocks) {
-        return bnPowLimit.GetCompact();
-    }
-
-    if (params.fPowAllowMinDifficultyBlocks && (
-        // testnet ...
-        (params.hashDevnetGenesisBlock.IsNull() && pindexLast->nChainWork >= UintToArith256(uint256S("0x000000000000000000000000000000000000000000000000003e9ccfe0e03e01"))) ||
-        // or devnet
-        !params.hashDevnetGenesisBlock.IsNull())) {
-        // NOTE: 000000000000000000000000000000000000000000000000003e9ccfe0e03e01 is the work of the "wrong" chain,
-        // so this rule activates there immediately and new blocks with high diff from that chain are going
-        // to be rejected by updated nodes. Note, that old nodes are going to reject blocks from updated nodes
-        // after the "right" chain reaches this amount of work too. This is a temporary condition which should
-        // be removed when we decide to hard-fork testnet again.
-        // TODO: remove "testnet+work OR devnet" part on next testnet hard-fork
-        // Special difficulty rule for testnet/devnet:
-        // If the new block's timestamp is more than 2* 2.5 minutes
-        // then allow mining of a min-difficulty block.
-
-        // start using smoother adjustment on testnet when total work hits
-        // 000000000000000000000000000000000000000000000000003ff00000000000
-        if (pindexLast->nChainWork >= UintToArith256(uint256S("0x000000000000000000000000000000000000000000000000003ff00000000000"))
-            // and immediately on devnet
-            || !params.hashDevnetGenesisBlock.IsNull()) {
-            // recent block is more than 2 hours old
-            if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + 2 * 60 * 60) {
-                return bnPowLimit.GetCompact();
-            }
-            // recent block is more than 10 minutes old
-            if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing*4) {
-                arith_uint256 bnNew = arith_uint256().SetCompact(pindexLast->nBits) * 10;
-                if (bnNew > bnPowLimit) {
-                    bnNew = bnPowLimit;
-                }
-                return bnNew.GetCompact();
-            }
-        } else {
-            // old stuff
-            if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing*2) {
-                return bnPowLimit.GetCompact();
+        // Round factoring
+        if(VLRtemp >= DSrateNRM){ VLFtmp = VRFsm1;
+            if(VLRtemp > DSrateMAX){ VLFtmp = VRFdw1;
+                if(VLRtemp > FRrateCLNG){ VLFtmp = VRFdw2; }
             }
         }
-    }
-
-    const CBlockIndex *pindex = pindexLast;
-    arith_uint256 bnPastTargetAvg;
-
-    for (unsigned int nCountBlocks = 1; nCountBlocks <= nPastBlocks; nCountBlocks++) {
-        arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
-        if (nCountBlocks == 1) {
-            bnPastTargetAvg = bnTarget;
-        } else {
-            // NOTE: that's not an average really...
-            bnPastTargetAvg = (bnPastTargetAvg * nCountBlocks + bnTarget) / (nCountBlocks + 1);
+        else if(VLRtemp < DSrateNRM){ VLFtmp = VRFup1;
+            if(VLRtemp < FRrateDWN){ VLFtmp = VRFup2;
+                if(VLRtemp < FRrateFLR){ VLFtmp = VRFup3; }
+            }
         }
-
-        if(nCountBlocks != nPastBlocks) {
-            assert(pindex->pprev); // should never fail
-            pindex = pindex->pprev;
-        }
+        // Record factoring
+        if      (scanblocks < scanheight-4) VLF1 = VLFtmp;
+        else if (scanblocks < scanheight-3) VLF2 = VLFtmp;
+        else if (scanblocks < scanheight-2) VLF3 = VLFtmp;
+        else if (scanblocks < scanheight-1) VLF4 = VLFtmp;
+        else if (scanblocks < scanheight-0) VLF5 = VLFtmp;
+        // move up per scan round
+        scanblocks ++;
     }
-
-    arith_uint256 bnNew(bnPastTargetAvg);
-
-    int64_t nActualTimespan = pindexLast->GetBlockTime() - pindex->GetBlockTime();
-    // NOTE: is this accurate? nActualTimespan counts it for (nPastBlocks - 1) blocks only...
-    int64_t nTargetTimespan = nPastBlocks * params.nPowTargetSpacing;
-
-    if (nActualTimespan < nTargetTimespan/3)
-        nActualTimespan = nTargetTimespan/3;
-    if (nActualTimespan > nTargetTimespan*3)
-        nActualTimespan = nTargetTimespan*3;
-
+    // Final mathematics
+    TerminalAverage = (VLF1 + VLF2 + VLF3 + VLF4 + VLF5) / AverageDivisor;
+    // Log PoW prev block
+    const CBlockIndex* BlockVelocityType = pindexLast;
     // Retarget
-    bnNew *= nActualTimespan;
-    bnNew /= nTargetTimespan;
-
-    if (bnNew > bnPowLimit) {
-        bnNew = bnPowLimit;
+    arith_uint256 bnOld;
+    arith_uint256 bnNew;
+    TerminalFactor *= TerminalAverage;
+    difficultyfactor = TerminalFactor;
+    bnOld.SetCompact(BlockVelocityType->nBits);
+    bnNew = bnOld / difficultyfactor;
+    bnNew *= 10000;
+    // Limit
+    if (bnNew > bnTerminalVelocity)
+        bnNew = bnTerminalVelocity;
+    // Print for debugging
+    if(fDebug) {
+        LogPrintf("Terminal-Velocity 1st spacing: %u: \n",VLrate1);
+        LogPrintf("Terminal-Velocity 2nd spacing: %u: \n",VLrate2);
+        LogPrintf("Terminal-Velocity 3rd spacing: %u: \n",VLrate3);
+        LogPrintf("Terminal-Velocity 4th spacing: %u: \n",VLrate4);
+        LogPrintf("Terminal-Velocity 5th spacing: %u: \n",VLrate5);
+        LogPrintf("Desired normal spacing: %u: \n",DSrateNRM);
+        LogPrintf("Desired maximum spacing: %u: \n",DSrateMAX);
+        LogPrintf("Terminal-Velocity 1st multiplier set to: %f: \n",VLF1);
+        LogPrintf("Terminal-Velocity 2nd multiplier set to: %f: \n",VLF2);
+        LogPrintf("Terminal-Velocity 3rd multiplier set to: %f: \n",VLF3);
+        LogPrintf("Terminal-Velocity 4th multiplier set to: %f: \n",VLF4);
+        LogPrintf("Terminal-Velocity 5th multiplier set to: %f: \n",VLF5);
+        LogPrintf("Terminal-Velocity averaged a final multiplier of: %f: \n",TerminalAverage);
+        LogPrintf("Prior Terminal-Velocity: %08x  %s\n", BlockVelocityType->nBits, bnOld.ToString());
+        LogPrintf("New Terminal-Velocity:  %08x  %s\n", bnNew.GetCompact(), bnNew.ToString());
     }
-
     return bnNew.GetCompact();
 }
 
@@ -211,13 +166,18 @@ unsigned int GetNextWorkRequiredBTC(const CBlockIndex* pindexLast, const CBlockH
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
     // Most recent algo first
-    if (pindexLast->nHeight + 1 >= params.nPowDGWHeight) {
-        return DarkGravityWave(pindexLast, pblock, params);
-    }
-    else if (pindexLast->nHeight + 1 >= params.nPowKGWHeight) {
-        return KimotoGravityWell(pindexLast, params);
+    if (pindexLast->nHeight+1 >= params.nPowVRXHeight) {
+        // Print for debugging
+        if(fDebug)
+            LogPrintf("Retargeting using VRX retarget logic \n");
+
+        return Terminal_Velocity_RateX(pindexLast, pblock, params);
     }
     else {
+        // Print for debugging
+        if(fDebug)
+            LogPrintf("Retargeting using BTC retarget logic \n");
+
         return GetNextWorkRequiredBTC(pindexLast, pblock, params);
     }
 }
