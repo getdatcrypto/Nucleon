@@ -5,7 +5,7 @@ includedir=${prefix}/include
 
 Name: Nucleon Core consensus library
 Description: Library for the Bitcoin consensus protocol.
-Version: 2.0.0
+Version: 2.2.0
 Libs: -L${libdir} -lneonconsensus
 Cflags: -I${includedir}
 Requires.private: libcrypto
