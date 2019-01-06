@@ -1,5 +1,5 @@
 ---
-name: "neon-win-0.12"
+name: "neon-win-2.20"
 enable_cache: true
 suites:
 - "trusty"
