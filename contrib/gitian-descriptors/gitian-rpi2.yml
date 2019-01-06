@@ -1,5 +1,5 @@
 ---
-name: "neon-raspberry-0.12"
+name: "neon-raspberry-2.20"
 enable_cache: true
 suites:
 - "precise"
