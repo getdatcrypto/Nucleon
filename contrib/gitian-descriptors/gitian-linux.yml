@@ -1,5 +1,5 @@
 ---
-name: "neon-linux-0.12"
+name: "neon-linux-2.20"
 enable_cache: true
 suites:
 - "trusty"
