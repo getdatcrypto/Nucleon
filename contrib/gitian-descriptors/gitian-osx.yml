@@ -1,5 +1,5 @@
 ---
-name: "neon-osx-0.12"
+name: "neon-osx-2.20"
 enable_cache: true
 suites:
 - "trusty"
