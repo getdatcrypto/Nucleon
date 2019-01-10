@@ -178,3 +178,41 @@ It will do the following automatically:
 - add missing translations to the build system (TODO)
 
 See doc/translation-process.md for more information.
+
+png2icns
+========
+
+Run this script in a folder where your PNG's which you require for icns are.
+
+_Importan Info_: _**Only** convert the **icons that match sizes icns supports**: (16x16, 32x32, 128x128, 256x256, 512x512 and 1024x1024 pixels)_
+
+
+```
+png2icns neon.icns neon_16x16x32.png neon_128x128x32.png neon_256x256x32.png neon_48x48x32.png neon_512x512x32.png
+Using icns type 'is32', mask 's8mk' for 'neon_16x16x32.png'
+Using icns type 'it32', mask 't8mk' for 'neon_128x128x32.png'
+Using icns type 'ic08' (ARGB) for 'neon_256x256x32.png'
+Using icns type 'ih32', mask 'h8mk' for 'neonn_48x48x32.png'
+Using icns type 'ic09' (ARGB) for 'neon_512x512x32.png'
+Saved icns file to neon.icns
+```
+
+icns2png
+========
+
+Run this script in a folder where you temporarly placed your icns file. It will extract all files.
+
+
+```
+icns2png -x neon.icns
+----------------------------------------------------
+Reading icns family from neon.icns...
+ Extracting icons from neon.icns...
+  Saved 'is32' element to neon_16x16x32.png.
+  Saved 'il32' element to neon_32x32x32.png.
+  Saved 'ih32' element to neon_48x48x32.png.
+  Saved 'it32' element to neon_128x128x32.png.
+  Saved 'ic08' element to neon_256x256x32.png.
+  Saved 'ic09' element to neon_512x512x32.png.
+Extracted 6 images from neon.icns.
+```

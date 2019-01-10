@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# Copyright (c) 2016 The Bitcoin Core developers
+# Copyright (c) 2016-2018 The Bitcoin Core developers
+# Copyright (c) 2015-2018 The DASH developers
+# Copyright (c) 2018 The NEON developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,9 +26,11 @@ EXCLUDE = [
     'src/secp256k1/src/java/org_bitcoin_NativeSecp256k1.h',
     'src/secp256k1/src/java/org_bitcoin_Secp256k1Context.c',
     'src/secp256k1/src/java/org_bitcoin_Secp256k1Context.h',
-    # auto generated:
+    # univalue:
+    'src/univalue/test/object.cpp',
     'src/univalue/lib/univalue_escapes.h',
-    'src/qt/bitcoinstrings.cpp',
+    # auto generated:
+    'src/qt/neoncoinstrings.cpp',
     'src/chainparamsseeds.h',
     # other external copyrights:
     'src/tinyformat.h',
@@ -88,6 +92,37 @@ EXPECTED_HOLDER_NAMES = [
     "Bitcoin Core Developers\n",
     "the Bitcoin Core developers\n",
     "The Bitcoin developers\n",
+    "The Dash Core developers\n",
+    "The Dash Core developers \n",
+    "Dash Core Developers\n",
+    "the Dash Core developers\n",
+    "The Dash developers\n",
+    "The DASH Core developers\n",
+    "The DASH Core developers \n",
+    "DASH Core Developers\n",
+    "the DASH Core developers\n",
+    "The DASH developers\n",
+    "The Dash Core developers\n",
+    "The Dash Core developers \n",
+    "Dash Core Developers\n",
+    "the Dash Core developers\n",
+    "The Dash developers\n",
+    "Ion Tor\n",
+    "The Neon Core developers\n",
+    "The Neon Core developers \n",
+    "Neon Core Developers\n",
+    "the Neon Core developers\n",
+    "The Neon developers\n",
+    "The NEON Core developers\n",
+    "The NEON Core developers \n",
+    "NEON Core Developers\n",
+    "the NEON Core developers\n",
+    "The NEON developers\n",
+    "The Neon Core developers\n",
+    "The Neon Core developers \n",
+    "Neon Core Developers\n",
+    "the Neon Core developers\n",
+    "The Neon developers\n",
     "The LevelDB Authors\. All rights reserved\.\n",
     "BitPay Inc\.\n",
     "BitPay, Inc\.\n",

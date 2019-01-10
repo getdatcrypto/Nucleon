@@ -1,7 +1,8 @@
-### Gavin's notes on getting gitian builds up and running using KVM
+### Gavin's notes on getting gitian builds up and running using KVM:###
 
-These instructions distilled from
-[https://help.ubuntu.com/community/KVM/Installation](https://help.ubuntu.com/community/KVM/Installation).
+These instructions distilled from:
+[  https://help.ubuntu.com/community/KVM/Installation](  https://help.ubuntu.com/community/KVM/Installation)
+... see there for complete details.
 
 You need the right hardware: you need a 64-bit-capable CPU with hardware virtualization support (Intel VT-x or AMD-V). Not all modern CPUs support hardware virtualization.
 
