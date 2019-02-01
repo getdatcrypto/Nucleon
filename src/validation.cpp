@@ -1284,31 +1284,21 @@ NOTE:   unlike bitcoin we are using PREVIOUS block height here,
         might be a good idea to change this to use prev bits
         but current height to avoid confusion.
 */
-CAmount GetBlockSubsidy(int nPrevBits, int nPrevHeight, const Consensus::Params& consensusParams, bool fSuperblockPartOnly, int64_t newBlockAge)
+CAmount GetBlockSubsidy(int nPrevBits, int nPrevHeight, const Consensus::Params& consensusParams, bool fSuperblockPartOnly)
 {
+    double nBase = 100000;
     double nSubsidy = 0; 
-    if (fSuperblockPartOnly) {
-        double nSubsidy = 1000; 
-    } else {
-    
-        double nBase = 100000;
-        int current_block = nPrevHeight + 1;
-        int nBonus = (current_block < 10001) ? (current_block % 100) : ((int) pow(current_block, 2) % 100);
-        int nMultiply = 0;
+    int current_block = nPrevHeight + 1;
+    int nBonus = (current_block < 10001) ? (current_block % 100) : ((int) pow(current_block, 2) % 100);
+    int nMultiply = 0;
 
-        if (current_block == 1) { nSubsidy = 1000000000; }
-        else if (current_block < 1001) { nSubsidy = 1000; }
-        else
-        {
-            if (nBonus < 33) { nMultiply = pow(nBonus, 3); }
-            nSubsidy = (nBase - ((double)current_block * .33333334)) + (double) nMultiply;
-            if (nSubsidy < 1000) { nSubsidy = 1000; }
-        }
-        
-        if ((nPrevHeight > consensusParams.nSubsidyTimeBasedStartBlock) && newBlockAge >= 960 ) // 16min
-        {
-            nSubsidy = nSubsidy * 10 / 100;  // 10%
-        }
+    if (current_block == 1) { nSubsidy = 1000000000; }
+    else if (current_block < 1001) { nSubsidy = 1000; }
+    else
+    {
+        if (nBonus < 33) { nMultiply = pow(nBonus, 3); }
+        nSubsidy = (nBase - ((double)current_block * .33333334)) + (double) nMultiply;
+        if (nSubsidy < 1000) { nSubsidy = 1000; }
     }
 
     return nSubsidy * COIN;
@@ -2287,9 +2277,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     // the peer who sent us this block is missing some data and wasn't able
     // to recognize that block is actually invalid.
     // TODO: resync data (both ways?) and try to reprocess this block later.
-    
-    int64_t newBlockAge =  pindex->GetBlockTime() - pindex->pprev->GetBlockTime();
-    CAmount blockReward = nFees + GetBlockSubsidy(pindex->pprev->nBits, pindex->pprev->nHeight, chainparams.GetConsensus(), false, newBlockAge);
+    CAmount blockReward = nFees + GetBlockSubsidy(pindex->pprev->nBits, pindex->pprev->nHeight, chainparams.GetConsensus());
     std::string strError = "";
     if (!IsBlockValueValid(block, pindex->nHeight, blockReward, strError)) {
         return state.DoS(0, error("ConnectBlock(NEON): %s", strError), REJECT_INVALID, "bad-cb-amount");
