@@ -45,6 +45,7 @@ struct Params {
     uint256 hashGenesisBlock;
     uint256 hashDevnetGenesisBlock;
     int nSubsidyHalvingInterval;
+    int nSubsidyTimeBasedStartBlock;
     int nMasternodePaymentsStartBlock;
     int nMasternodePaymentsIncreaseBlock;
     int nMasternodePaymentsIncreasePeriod; // in blocks
