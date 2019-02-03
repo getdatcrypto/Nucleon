@@ -86,6 +86,7 @@ struct Params {
     int64_t nPowTargetSpacing;
     int64_t nPowTargetTimespan;
     int64_t nPowVRXHeight;
+    int64_t nMinDiffVRXHeight;
     int64_t nPowVelocityHeight;
     int64_t DifficultyAdjustmentInterval() const { return nPowTargetTimespan / nPowTargetSpacing; }
     uint256 nMinimumChainWork;

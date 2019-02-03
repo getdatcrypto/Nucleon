@@ -52,6 +52,15 @@ unsigned int Terminal_Velocity_RateX(const CBlockIndex* pindexLast, const CBlock
     // Check for blocks to index | Allowing for diff reset
     if (pindexLast->nHeight < params.nPowVRXHeight+2)
         return bnTerminalVelocity.GetCompact(); // reset diff
+    // Check for chain stall, allowing for min diff reset
+    // If the new block's timestamp is more than 2 * target spacing
+    // then allow mining of a min-difficulty block.
+    if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + (DSrateNRM * 2)) {
+        // Min-diff activation after block xxxxxxx
+        if (pindexLast->nHeight > params.nMinDiffVRXHeight) {
+            return bnTerminalVelocity.GetCompact(); // reset diff
+        }
+    }
     // Set prev blocks...
     const CBlockIndex* pindexPrev = pindexLast;
     // ...and deduce spacing
@@ -90,8 +99,24 @@ unsigned int Terminal_Velocity_RateX(const CBlockIndex* pindexLast, const CBlock
     }
     // Final mathematics
     TerminalAverage = (VLF1 + VLF2 + VLF3 + VLF4 + VLF5) / AverageDivisor;
+    // Only select last non-min-diff block when retargeting
+    // This negates a chain reset when a min-diff block is allowed
+    //
+    // Set min-diff check values
+    arith_uint256 bnNonMinDiff;
+    const CBlockIndex* pindexNonMinDiff = pindexLast;
+    bnNonMinDiff.SetCompact(pindexNonMinDiff->nBits);
+    // Min-diff index skip after block xxxxxxx
+    if (pindexLast->nHeight > params.nMinDiffVRXHeight) {
+        // Check whether the selected block is min-diff
+        while(bnNonMinDiff.GetCompact() <= bnTerminalVelocity.GetCompact()) {
+            // Index backwards until a non-min-diff block is found
+            pindexNonMinDiff = pindexNonMinDiff->pprev;
+            bnNonMinDiff.SetCompact(pindexNonMinDiff->nBits);
+        }
+    }
     // Log PoW prev block
-    const CBlockIndex* BlockVelocityType = pindexLast;
+    const CBlockIndex* BlockVelocityType = pindexNonMinDiff;
     // Retarget
     arith_uint256 bnOld;
     arith_uint256 bnNew;
