@@ -1305,7 +1305,6 @@ CAmount GetBlockSubsidy(int nPrevBits, int nPrevHeight, const Consensus::Params&
         {
             nSubsidy = nSubsidy * 10 / 100;  // 10%
         }
-    }
 
     return nSubsidy * COIN;
 }
