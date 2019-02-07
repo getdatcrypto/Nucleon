@@ -1286,24 +1286,20 @@ NOTE:   unlike bitcoin we are using PREVIOUS block height here,
 */
 CAmount GetBlockSubsidy(int nPrevBits, int nPrevHeight, const Consensus::Params& consensusParams, bool fSuperblockPartOnly, int64_t newBlockAge)
 {
+    double nBase = 100000;
     double nSubsidy = 0; 
-    if (fSuperblockPartOnly) {
-        double nSubsidy = 1000; 
-    } else {
-    
-        double nBase = 100000;
-        int current_block = nPrevHeight + 1;
-        int nBonus = (current_block < 10001) ? (current_block % 100) : ((int) pow(current_block, 2) % 100);
-        int nMultiply = 0;
+    int current_block = nPrevHeight + 1;
+    int nBonus = (current_block < 10001) ? (current_block % 100) : ((int) pow(current_block, 2) % 100);
+    int nMultiply = 0;
 
-        if (current_block == 1) { nSubsidy = 1000000000; }
-        else if (current_block < 1001) { nSubsidy = 1000; }
-        else
-        {
-            if (nBonus < 33) { nMultiply = pow(nBonus, 3); }
-            nSubsidy = (nBase - ((double)current_block * .33333334)) + (double) nMultiply;
-            if (nSubsidy < 1000) { nSubsidy = 1000; }
-        }
+    if (current_block == 1) { nSubsidy = 1000000000; }
+    else if (current_block < 1001) { nSubsidy = 1000; }
+    else
+    {
+        if (nBonus < 33) { nMultiply = pow(nBonus, 3); }
+        nSubsidy = (nBase - ((double)current_block * .33333334)) + (double) nMultiply;
+        if (nSubsidy < 1000) { nSubsidy = 1000; }
+    }
         
         if ((nPrevHeight > consensusParams.nSubsidyTimeBasedStartBlock) && newBlockAge >= 960 ) // 16min
         {
@@ -1323,7 +1319,7 @@ CAmount GetMasternodePayment(int nHeight, CAmount blockValue)
     if(nHeight < 6800){
         dMasternodePart = dMasternodeBase; // 50% of the block reward
     } else if(nHeight >= 6800){
-        dMasternodePart = 0.9; // Sliding scale from 50% to 90% of the block reward
+        dMasternodePart = 0.9; // 90% of the block reward
     }
 
     return (blockValue * dMasternodePart);
